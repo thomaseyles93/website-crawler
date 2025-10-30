@@ -9,7 +9,7 @@ use Symfony\Component\DomCrawler\Crawler;
 
 // ---------------- Setup ----------------
 $seed = $argv[1] ?? null;
-$concurrency = 10;
+$concurrency = 2; //Careful upping this as it causes load on the server - run out of hours for mass
 $delayUs = 200_000;
 
 if (!$seed) {

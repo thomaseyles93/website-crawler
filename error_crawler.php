@@ -9,7 +9,7 @@ use Symfony\Component\DomCrawler\Crawler;
 
 // ---------------- Setup ----------------
 $seed = $argv[1] ?? null;
-$concurrency = 10;
+$concurrency = 2; //Careful upping this as it causes load on the server - run out of hours for mass
 $delayUs = 200_000;
 
 if (!$seed) {
@@ -19,15 +19,13 @@ if (!$seed) {
 
 // Create folders if missing
 $outputDir = __DIR__ . '/output';
-$logDir = __DIR__ . '/logs';
 if (!is_dir($outputDir)) mkdir($outputDir, 0755, true);
-if (!is_dir($logDir)) mkdir($logDir, 0755, true);
 
 // Generate filenames
 $hostSanitized = preg_replace('/[^a-zA-Z0-9\-]/', '_', parse_url($seed, PHP_URL_HOST));
 $timestamp = date('Ymd_His');
 $outputFile = "$outputDir/{$hostSanitized}_{$timestamp}.csv";
-$errorFile = "$logDir/{$hostSanitized}_{$timestamp}_errors.csv";
+$errorFile = "$outputDir/{$hostSanitized}_{$timestamp}_errors.csv";
 
 $client = new Client([
     'headers' => ['User-Agent' => 'MyPhpCrawler/1.0 (+https://example.com)'],
@@ -99,12 +97,10 @@ while (!$queue->isEmpty()) {
             $url = $batch[$index];
             $status = $response->getStatusCode();
 
-            // Record non-success statuses
             if ($status >= 400) {
-                $errors[] = [$url, $status];
+                $errors[] = [$url, $status];  // just HTTP status
             }
 
-            // Only parse HTML if status is good
             if ($status >= 200 && $status < 400) {
                 $crawler = new Crawler((string)$response->getBody());
                 $crawler->filter('a[href]')->each(
@@ -113,7 +109,14 @@ while (!$queue->isEmpty()) {
             }
         },
         'rejected' => function ($reason, $index) use (&$errors, $batch) {
-            $errors[] = [$batch[$index], "Error: " . $reason];
+            $url = $batch[$index];
+            if ($reason instanceof \GuzzleHttp\Exception\ConnectException) {
+                $errors[] = [$url, 'Connection/Timeout'];  // short message
+            } elseif ($reason instanceof \GuzzleHttp\Exception\RequestException && $reason->hasResponse()) {
+                $errors[] = [$url, $reason->getResponse()->getStatusCode()];
+            } else {
+                $errors[] = [$url, 'Other Error'];
+            }
         },
     ]);
 
