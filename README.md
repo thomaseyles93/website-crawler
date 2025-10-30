@@ -14,6 +14,7 @@ This script crawls a single website and extracts all URLs into a CSV file.
 ```bash
 composer install
 ```
-3. Run sitemap generator ```php crawler.php https://6b.health```
-4. Run for URLs with errors (40X/50Xs) ```php crawler.php https://6b.health```
+3. Open Terminal to run the following commands
+4. To run a sitemap generator (all URLs for a domain) ```php crawler.php https://6b.health```
+4. To run a report for all URLs with errors (40X/50Xs) ```php crawler.php https://6b.health```
 5. Check output folder for results
